@@ -7,7 +7,7 @@
 //
 
 #import "AppDelegate.h"
-
+#import "ListTableViewController.h"
 @interface AppDelegate ()
 
 @end
@@ -17,6 +17,13 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    ListTableViewController *myTableViewController = [[ListTableViewController alloc] initWithStyle:UITableViewStylePlain];
+    UINavigationController *tableViewNavigationController = [[UINavigationController alloc] initWithRootViewController:myTableViewController];
+    self.window.rootViewController = tableViewNavigationController;
+    self.window.backgroundColor = [UIColor whiteColor];
+    [self.window makeKeyAndVisible];
+    
     return YES;
 }
 

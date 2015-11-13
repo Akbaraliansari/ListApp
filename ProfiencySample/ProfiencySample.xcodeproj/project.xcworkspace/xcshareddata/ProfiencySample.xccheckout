@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>7FC0BEDD-D628-4AD5-8063-951562F240B2</string>
+	<key>IDESourceControlProjectName</key>
+	<string>project</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>1B6D2AD3BFBE2AD2B42F69475D6E987E555F167A</key>
+		<string>https://github.com/Akbaraliansari/ListApp.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>ProfiencySample/ProfiencySample.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>1B6D2AD3BFBE2AD2B42F69475D6E987E555F167A</key>
+		<string>../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>https://github.com/Akbaraliansari/ListApp.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>1B6D2AD3BFBE2AD2B42F69475D6E987E555F167A</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>1B6D2AD3BFBE2AD2B42F69475D6E987E555F167A</string>
+			<key>IDESourceControlWCCName</key>
+			<string>ListAppRepo</string>
+		</dict>
+	</array>
+</dict>
+</plist>
