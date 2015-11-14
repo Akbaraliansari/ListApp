@@ -77,8 +77,8 @@
     CGSize expectedLabelSize = [self rectForText:description // <- your text here
                                usingFont:font
                            boundedBySize:maximumLabelSize].size;
-   
-   if (expectedLabelSize.height > 140)
+    
+   if (expectedLabelSize.height > 130)
        return expectedLabelSize.height + 45;
     else
         return 145;
@@ -115,16 +115,19 @@
    
     if (self.ImagesCacheDictionary[key])
     {
+    
         cell.photo.image = [self.ImagesCacheDictionary objectForKey:key];
         
     }else {
         
         if (listData.imageHref.length > 0)
             [self downloadImage:cell withImageUrl:listData.imageHref withkeys:key];
-        else
+        else {
+           
             [self.ImagesCacheDictionary setObject:[UIImage imageNamed:IC_NOIMAGE] forKey:key];
             [cell.photo setImage:[self.ImagesCacheDictionary objectForKey:key]];
-            
+        }
+        
     }
     
     return cell;
@@ -221,7 +224,7 @@
     //First create an NSURLConfiguration
     NSURLSessionConfiguration *sessionConfiguration =
     [NSURLSessionConfiguration defaultSessionConfiguration];
-    
+    [sessionConfiguration setHTTPMaximumConnectionsPerHost:1];
     //Creates a session thatt conforms to the current class as a delegate.
     NSURLSession *session =
     [NSURLSession sessionWithConfiguration:sessionConfiguration
@@ -235,7 +238,7 @@
                                                        UIImage *downloadedImage = [UIImage imageWithData:
                                                                                    [NSData dataWithContentsOfURL:location]];
                                                        dispatch_sync(dispatch_get_main_queue(), ^{
-                                                           
+                                                          
                                                            if(downloadedImage != nil) {
                                                            [self.ImagesCacheDictionary setObject:downloadedImage forKey:key];
                                                           
