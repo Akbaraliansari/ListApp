@@ -18,7 +18,7 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
     
-    //Initialise TableViewController
+    //Initialise TableViewController to set as rootviewcontroller
     ListTableViewController *myTableViewController = [[ListTableViewController alloc] initWithStyle:UITableViewStylePlain];
     UINavigationController *tableViewNavigationController = [[UINavigationController alloc] initWithRootViewController:myTableViewController];
     

@@ -12,11 +12,11 @@
 #import "Constants.h"
 #import "DetailsList.h"
 
-#define IC_NOIMAGE @"ic_noimage.jpg"
+#define IC_IMAGE_NOTFOUND @"ic_noimage.jpg"
 #define JSON_FEED_URL @"https://dl.dropboxusercontent.com/u/746330/facts.json"
 
 @interface ListTableViewController ()
-@property (nonatomic,retain) NSMutableArray *resultantData;
+
 @end
 
 @implementation ListTableViewController
@@ -25,6 +25,9 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
+    //Create session for downloading images
+    _sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+    _session = [NSURLSession sessionWithConfiguration:_sessionConfig];
     
     // Register notification for orientation change
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -46,8 +49,10 @@
     //Create a new NSMutableDictionary object so we can store images once they are downloaded.
     self.ImagesCacheDictionary = [[NSMutableDictionary alloc]init];
     
-    [self.tableView registerClass:[CustomTableViewCell class] forCellReuseIdentifier:@"CustomCell"];
+    //Register custom cell
+    [self.tableView registerClass:[CustomTableViewCell class] forCellReuseIdentifier:[CustomTableViewCell reuseIdentifier]];
     
+    //Remove separator
     self.tableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
   
@@ -65,24 +70,30 @@
     
 }
 
+// TableView Delegate Methods
 -(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     
     // Models for json feed
      DetailsList *listData = self.resultantData[indexPath.row];
      NSString *description = listData.desc.length > 0 ? listData.desc : @"No Description";
-   
-    //Calculate height of the text
-    CGSize maximumLabelSize = CGSizeMake(SCREEN_WIDTH - 160 ,9999);
-    UIFont *font = [UIFont systemFontOfSize:14];
-    CGSize expectedLabelSize = [self rectForText:description // <- your text here
-                               usingFont:font
-                           boundedBySize:maximumLabelSize].size;
     
-   if (expectedLabelSize.height > 130)
-       return expectedLabelSize.height + 45;
+    //Calculate height of the description text
+    CGSize descSize = CGSizeMake(SCREEN_WIDTH - 150 ,9999);
+    UIFont *descFont = [UIFont systemFontOfSize:14];
+    
+    //Expected height
+    CGSize expectedDescSize = [self rectForText:description // <- your text here
+                               usingFont:descFont
+                           boundedBySize:descSize].size;
+    
+    
+    CGFloat totalHeight = expectedDescSize.height;
+   if (totalHeight > 130)
+       return totalHeight + 60;
     else
-        return 145;
+        return 170;
 }
+
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
@@ -90,48 +101,105 @@
 }
 
 -(UITableViewCell*) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    static NSString *cellIdentifier = @"CustomCell";
-    CustomTableViewCell* cell =  [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
     
-    // get feed data based on indexpath
+    CustomTableViewCell *cell = (CustomTableViewCell *)[tableView dequeueReusableCellWithIdentifier:[CustomTableViewCell reuseIdentifier]];
+    
+    // Get feed data based on indexpath
     DetailsList *listData = self.resultantData[indexPath.row];
-    cell.title.text= listData.title.length > 0 ? listData.title : @"No Title";
-    cell.desc.text = listData.desc.length > 0 ? listData.desc : @"No Description";
+    NSString *title=  listData.title.length > 0 ? listData.title : @"No Title";
+    cell.title.text = title;
+    
+   
+    NSString *description = listData.desc.length > 0 ? listData.desc : @"No Description";
+    cell.desc.text = description;
     
     //Calculate height of the text
-    CGSize maximumLabelSize = CGSizeMake(SCREEN_WIDTH - 160,9999);
-    UIFont *font = [UIFont systemFontOfSize:14];
-    CGRect titleRect = [self rectForText:listData.desc // <- your text here
-                               usingFont:font
-                           boundedBySize:maximumLabelSize];
-    //adjust the label the the new height.
-    CGRect newFrame = cell.desc.frame;
-    newFrame.size.height = titleRect.size.height;
-    cell.desc.frame = newFrame;   //cell.photo.image=[UIImage imageNamed:dict[@"icon"]];
-    cell.photo.backgroundColor = [UIColor whiteColor];
+    CGSize descSize = CGSizeMake(SCREEN_WIDTH - 150,9999);
+    UIFont *descFont = [UIFont systemFontOfSize:14];
+    
+    CGRect expectedDescRect = [self rectForText:description // <- your text here
+                               usingFont:descFont
+                           boundedBySize:descSize];
+    //Adjust the label to the new height.
+    CGRect descFrame = cell.desc.frame;
+    descFrame.size.height = expectedDescRect.size.height;
+    
+    // Set description frame
+    cell.desc.frame = descFrame;
+    
    
     // Assign key for each images
     NSString *key =  [NSString stringWithFormat:@"%li",(long)indexPath.row];
-   
-    if (self.ImagesCacheDictionary[key])
-    {
     
-        cell.photo.image = [self.ImagesCacheDictionary objectForKey:key];
-        
-    }else {
-        
-        if (listData.imageHref.length > 0)
-            [self downloadImage:cell withImageUrl:listData.imageHref withkeys:key];
-        else {
-           
-            [self.ImagesCacheDictionary setObject:[UIImage imageNamed:IC_NOIMAGE] forKey:key];
-            [cell.photo setImage:[self.ImagesCacheDictionary objectForKey:key]];
+    // Cancel when scroll the tableview
+    if (cell.imageDownloadTask)
+    {
+        [cell.imageDownloadTask cancel];
+    }
+    
+    [cell.activityView startAnimating];
+    cell.photo.image = nil;
+    
+    // Check Image Exists
+    if (![self.ImagesCacheDictionary valueForKey:key])
+    {
+        // Set Image Url
+        NSURL *imageURL = [NSURL URLWithString:listData.imageHref];
+        if (imageURL)
+        {
+           // Send request to download image
+            cell.imageDownloadTask = [_session dataTaskWithURL:imageURL
+                                             completionHandler:^(NSData *data, NSURLResponse *response, NSError *error)
+                                      {
+                                          dispatch_async(dispatch_get_main_queue(), ^{
+                                          if (error)
+                                          {
+                                              //NSLog(@"ERROR: %@", error);
+                                              [self.ImagesCacheDictionary setValue:[UIImage imageNamed:IC_IMAGE_NOTFOUND] forKey:key];
+                                              [cell.photo setImage:[UIImage imageNamed:IC_IMAGE_NOTFOUND]];
+                                               [cell.activityView stopAnimating];
+                                              
+                                          }
+                                          else
+                                          {
+                                             
+                                              NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+                                              
+                                              if (httpResponse.statusCode == 200)
+                                              {
+                                                  UIImage *image = [UIImage imageWithData:data];
+                                                  
+                                                [self.ImagesCacheDictionary setValue:image forKey:key];
+                                                [cell.photo setImage:image];
+                                                [cell.activityView stopAnimating];
+                                                 
+                                              }
+                                              else
+                                              {
+                                                 /// NSLog(@"Couldn't load image at URL: %@", imageURL);
+                                                //  NSLog(@"HTTP %ld", (long)httpResponse.statusCode);
+                                                  [self.ImagesCacheDictionary setValue:[UIImage imageNamed:IC_IMAGE_NOTFOUND] forKey:key];
+                                                  [cell.photo setImage:[UIImage imageNamed:IC_IMAGE_NOTFOUND]];
+                                                   [cell.activityView stopAnimating];
+                                              }
+                                          }
+                                               });
+                                      }];
+            
+            [cell.imageDownloadTask resume];
         }
+    }
+    else {
         
+        // Set loaded image in the cell
+        [cell.photo setImage:[self.ImagesCacheDictionary valueForKey:key]];
+        [cell.activityView stopAnimating];
     }
     
     return cell;
 }
+
+
 
 //Calculate Height of Label
 -(CGRect)rectForText:(NSString *)text
@@ -177,8 +245,6 @@
                                   ^(NSData *data, NSURLResponse
                                     *response, NSError *error) {
                                       
-                                
-                                      
                                       NSString *feedString = [[NSString
                                                                alloc] initWithData:data encoding:NSASCIIStringEncoding];
                                       
@@ -199,10 +265,12 @@
                                           // Added json feed model in an array
                                           [self.resultantData addObject:data];
                                       }
-                                     // NSLog(@"JSON: %@", json);
+                                      
+
+                                                                          // NSLog(@"JSON: %@", json);
                                      // NSLog(@"Error: %@", error);
                                       dispatch_async(dispatch_get_main_queue(), ^{
-                                         
+                                          
                                           self.title = [json objectForKey:@"title"];
                                           self.tableView.delegate = self;
                                           self.tableView.dataSource = self;
@@ -215,49 +283,6 @@
     [task resume];
 }
 
-//Downloading images
--(void)downloadImage:(CustomTableViewCell *)cell withImageUrl:(NSString*)imageUrl withkeys:(NSString*)key {
-   
-    NSURL *url = [NSURL URLWithString:
-                  imageUrl];
-    
-    //First create an NSURLConfiguration
-    NSURLSessionConfiguration *sessionConfiguration =
-    [NSURLSessionConfiguration defaultSessionConfiguration];
-    [sessionConfiguration setHTTPMaximumConnectionsPerHost:1];
-    //Creates a session thatt conforms to the current class as a delegate.
-    NSURLSession *session =
-    [NSURLSession sessionWithConfiguration:sessionConfiguration
-                                  delegate:self
-                             delegateQueue:nil];
-    
-    
-    NSURLSessionDownloadTask *downloadPhotoTask = [session
-                                                   downloadTaskWithURL:url completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
-                                                       
-                                                       UIImage *downloadedImage = [UIImage imageWithData:
-                                                                                   [NSData dataWithContentsOfURL:location]];
-                                                       dispatch_sync(dispatch_get_main_queue(), ^{
-                                                          
-                                                           if(downloadedImage != nil) {
-                                                           [self.ImagesCacheDictionary setObject:downloadedImage forKey:key];
-                                                          
-                                                           } else {
-                                                               [self.ImagesCacheDictionary setObject:[UIImage imageNamed:IC_NOIMAGE] forKey:key];
-                                                           }
-                                                           NSIndexPath* rowToReload = [NSIndexPath indexPathForRow:[key integerValue] inSection:0];
-                                                           NSArray* rowsToReload = [NSArray arrayWithObjects:rowToReload, nil];
-                                                           [self.tableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
-                                                           
-                                                          
-                                                       });
-                                                      
-                                                   }];
-    
-    	
-    [downloadPhotoTask resume];
-
-}
 
 // Orientaion change detection
 -(void) detectOrientation {
@@ -267,11 +292,11 @@
 
 // Refresh List Feed
 -(void)refreshList:(id)sender {
-    
+    // Refresh Json Feeds
     [self.resultantData removeAllObjects];
     [self.tableView reloadData];
-    
-     [self fetchJsonFeed];
+    [self.activityIndicatorView startAnimating];
+    [self fetchJsonFeed];
 }
 
 - (void)didReceiveMemoryWarning {

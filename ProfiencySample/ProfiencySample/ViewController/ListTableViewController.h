@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 
-@interface ListTableViewController : UITableViewController<UITableViewDataSource,UITableViewDelegate,NSURLSessionDelegate, NSURLSessionDataDelegate>
+@interface ListTableViewController : UITableViewController<UITableViewDataSource,UITableViewDelegate>
 
 @property (nonatomic,strong) UITableView *table;
 
@@ -16,5 +16,12 @@
 @property (atomic, strong)NSMutableDictionary *ImagesCacheDictionary;
 
 @property (nonatomic, strong) UIActivityIndicatorView *activityIndicatorView;
+
+// Store json feeds in resultant data
+@property (nonatomic,retain) NSMutableArray *resultantData;
+
+// Create session configuration for downloading images
+@property (nonatomic, strong) NSURLSessionConfiguration *sessionConfig;
+@property (nonatomic, strong) NSURLSession *session;
 @end
 
