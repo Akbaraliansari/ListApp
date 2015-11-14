@@ -29,7 +29,10 @@
         [self addSubview:self.desc];
         
         self.photo =[[UIImageView alloc] initWithFrame:CGRectZero];
+        self.photo.image = [UIImage imageNamed:@"ic_image_bg.png"];
         [self addSubview:self.photo];
+        
+        [self setSelectionStyle:UITableViewCellSelectionStyleNone];
         
     }
     return self;

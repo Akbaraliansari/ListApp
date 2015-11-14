@@ -2,7 +2,7 @@
 //  AppDelegate.h
 //  ProfiencySample
 //
-//  Created by Balasubramaniyan M on 13/11/15.
+//  Created by Ansari  on 13/11/15.
 //  Copyright (c) 2015 Ansari. All rights reserved.
 //
 

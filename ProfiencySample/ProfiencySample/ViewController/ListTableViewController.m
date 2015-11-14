@@ -2,7 +2,7 @@
 //  ViewController.m
 //  ProfiencySample
 //
-//  Created by Balasubramaniyan M on 13/11/15.
+//  Created by Ansari on 13/11/15.
 //  Copyright (c) 2015 Ansari. All rights reserved.
 //
 
@@ -13,9 +13,9 @@
 #import "DetailsList.h"
 
 #define IC_NOIMAGE @"ic_noimage.jpg"
+#define JSON_FEED_URL @"https://dl.dropboxusercontent.com/u/746330/facts.json"
 
 @interface ListTableViewController ()
-@property (nonatomic, retain) NSArray* titles;
 @property (nonatomic,retain) NSMutableArray *resultantData;
 @end
 
@@ -24,34 +24,33 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
-      
+    
+    
+    // Register notification for orientation change
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(detectOrientation)
                                                  name:UIDeviceOrientationDidChangeNotification
                                                object:nil];
     
+    
+    // Refresh button on navigation bar
     UIBarButtonItem *refresh = [[UIBarButtonItem alloc]initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh target:self action:@selector(refreshList:)];
     self.navigationItem.rightBarButtonItem = refresh;
     
-    // Do any additional setup after loading the view, typically from a nib.
-   
-    
-    self.activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+    // Loading Activity View.
+   self.activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
     [self.activityIndicatorView setCenter:self.view.center];
     [self.view addSubview:self.activityIndicatorView];
     [self.activityIndicatorView startAnimating];
-    
-    
     
     //Create a new NSMutableDictionary object so we can store images once they are downloaded.
     self.ImagesCacheDictionary = [[NSMutableDictionary alloc]init];
     
     [self.tableView registerClass:[CustomTableViewCell class] forCellReuseIdentifier:@"CustomCell"];
-    self.tableView.delegate = self;
-    self.tableView.dataSource = self;
+    
     self.tableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
-    // self.tableview.separatorStyle = UITableViewCellSeparatorStyleNone;
-   // self.tableView.backgroundColor = [UIColor clearColor];
+    self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+  
    
     
 
@@ -60,16 +59,19 @@
 -(void)viewDidAppear:(BOOL)animated {
     
     [super viewDidAppear:animated];
+    
+    // Fetch json feed from the server
     [self fetchJsonFeed];
     
 }
 
 -(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     
-   
+    // Models for json feed
      DetailsList *listData = self.resultantData[indexPath.row];
      NSString *description = listData.desc.length > 0 ? listData.desc : @"No Description";
    
+    //Calculate height of the text
     CGSize maximumLabelSize = CGSizeMake(SCREEN_WIDTH - 160 ,9999);
     UIFont *font = [UIFont systemFontOfSize:14];
     CGSize expectedLabelSize = [self rectForText:description // <- your text here
@@ -84,19 +86,19 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return self.titles.count;
+    return self.resultantData.count;
 }
 
 -(UITableViewCell*) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     static NSString *cellIdentifier = @"CustomCell";
     CustomTableViewCell* cell =  [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
     
+    // get feed data based on indexpath
     DetailsList *listData = self.resultantData[indexPath.row];
     cell.title.text= listData.title.length > 0 ? listData.title : @"No Title";
-
-    
     cell.desc.text = listData.desc.length > 0 ? listData.desc : @"No Description";
     
+    //Calculate height of the text
     CGSize maximumLabelSize = CGSizeMake(SCREEN_WIDTH - 160,9999);
     UIFont *font = [UIFont systemFontOfSize:14];
     CGRect titleRect = [self rectForText:listData.desc // <- your text here
@@ -107,24 +109,28 @@
     newFrame.size.height = titleRect.size.height;
     cell.desc.frame = newFrame;   //cell.photo.image=[UIImage imageNamed:dict[@"icon"]];
     cell.photo.backgroundColor = [UIColor whiteColor];
-    
+   
+    // Assign key for each images
     NSString *key =  [NSString stringWithFormat:@"%li",(long)indexPath.row];
-    
+   
     if (self.ImagesCacheDictionary[key])
     {
         cell.photo.image = [self.ImagesCacheDictionary objectForKey:key];
         
-    }else if (listData.imageHref.length > 0){
-        [self downloadImage:cell withImageUrl:listData.imageHref withkeys:key];
-    } else {
-        [self.ImagesCacheDictionary setObject:[UIImage imageNamed:IC_NOIMAGE] forKey:key];
-        [cell.photo setImage:[self.ImagesCacheDictionary objectForKey:key]];
+    }else {
+        
+        if (listData.imageHref.length > 0)
+            [self downloadImage:cell withImageUrl:listData.imageHref withkeys:key];
+        else
+            [self.ImagesCacheDictionary setObject:[UIImage imageNamed:IC_NOIMAGE] forKey:key];
+            [cell.photo setImage:[self.ImagesCacheDictionary objectForKey:key]];
+            
     }
-    
     
     return cell;
 }
 
+//Calculate Height of Label
 -(CGRect)rectForText:(NSString *)text
            usingFont:(UIFont *)font
        boundedBySize:(CGSize)maxSize
@@ -142,6 +148,7 @@
 {
     [cell setBackgroundColor:[UIColor whiteColor]];
     
+    // set gradient background color of the cell
     CAGradientLayer *grad = [CAGradientLayer layer];
     grad.frame = cell.bounds;
     grad.colors = [NSArray arrayWithObjects:(id)[[UIColor lightGrayColor] CGColor], (id)[[UIColor whiteColor] CGColor], nil];
@@ -152,25 +159,15 @@
    
 }
 
--(CGFloat)calculateHeightWithText:(NSString *)title andFont:(NSInteger)font andLabelSize:(UILabel*)label{
-    
-    CGRect labelRect = [title
-                        boundingRectWithSize:label.frame.size
-                        options:NSStringDrawingUsesLineFragmentOrigin
-                        attributes:@{
-                                     NSFontAttributeName : [UIFont systemFontOfSize:font]
-                                     }
-                        context:nil];
-    
-    return labelRect.size.height;
-}
-
+// Downloading Json feed
 -(void)fetchJsonFeed {
     
+    // Create a url for json feed
     NSURL *URL = [NSURL
-                  URLWithString:@"https://dl.dropboxusercontent.com/u/746330/facts.json"];
+                  URLWithString:JSON_FEED_URL];
     NSURLRequest *request = [NSURLRequest requestWithURL:URL];
     
+    // Creates a session
     NSURLSession *session = [NSURLSession sharedSession];
     NSURLSessionDataTask *task = [session dataTaskWithRequest:request
                                             completionHandler:
@@ -184,8 +181,11 @@
                                       
                                       NSData *jsonData = [feedString dataUsingEncoding:NSUTF8StringEncoding];
                                       NSDictionary* json = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
-                                      self.titles = [json objectForKey:@"rows"];
+                                      
+                                      // Initialise nsmutablearray for json feed
                                       self.resultantData = [[NSMutableArray alloc] init];
+                                      
+                                      // Iterating number of records in json feeds
                                       for(NSDictionary *results in [json objectForKey:@"rows"]) {
                                           
                                           DetailsList *data = [[DetailsList alloc] init];
@@ -193,6 +193,7 @@
                                           data.desc = [results safeObjectForKey:@"description"];
                                           data.imageHref = [results safeObjectForKey:@"imageHref"];
                                           
+                                          // Added json feed model in an array
                                           [self.resultantData addObject:data];
                                       }
                                      // NSLog(@"JSON: %@", json);
@@ -200,21 +201,20 @@
                                       dispatch_async(dispatch_get_main_queue(), ^{
                                          
                                           self.title = [json objectForKey:@"title"];
-                                         
-                                          
+                                          self.tableView.delegate = self;
+                                          self.tableView.dataSource = self;
                                           [self.tableView reloadData];
                                           [self.activityIndicatorView stopAnimating];
                                          
                                       });
-                                     
-                                       NSLog(@"NSArray: %@", self.titles);
                                   
                                   }];
     [task resume];
 }
 
+//Downloading images
 -(void)downloadImage:(CustomTableViewCell *)cell withImageUrl:(NSString*)imageUrl withkeys:(NSString*)key {
-   // NSLog(@"indexkey %@ and imageurl %@",key,imageUrl);
+   
     NSURL *url = [NSURL URLWithString:
                   imageUrl];
     
@@ -228,23 +228,24 @@
                                   delegate:self
                              delegateQueue:nil];
     
-    // 2
+    
     NSURLSessionDownloadTask *downloadPhotoTask = [session
                                                    downloadTaskWithURL:url completionHandler:^(NSURL *location, NSURLResponse *response, NSError *error) {
-                                                       // 3
+                                                       
                                                        UIImage *downloadedImage = [UIImage imageWithData:
                                                                                    [NSData dataWithContentsOfURL:location]];
-                                                       dispatch_async(dispatch_get_main_queue(), ^{
-                                                           NSLog(@"image %@",key);
+                                                       dispatch_sync(dispatch_get_main_queue(), ^{
+                                                           
                                                            if(downloadedImage != nil) {
                                                            [self.ImagesCacheDictionary setObject:downloadedImage forKey:key];
-                                                           [cell.photo setImage:[self.ImagesCacheDictionary objectForKey:key]];
+                                                          
                                                            } else {
                                                                [self.ImagesCacheDictionary setObject:[UIImage imageNamed:IC_NOIMAGE] forKey:key];
-                                                               [cell.photo setImage:[self.ImagesCacheDictionary objectForKey:key]];
                                                            }
+                                                           NSIndexPath* rowToReload = [NSIndexPath indexPathForRow:[key integerValue] inSection:0];
+                                                           NSArray* rowsToReload = [NSArray arrayWithObjects:rowToReload, nil];
+                                                           [self.tableView reloadRowsAtIndexPaths:rowsToReload withRowAnimation:UITableViewRowAnimationNone];
                                                            
-                                                           //NSLog(@"dict %@",self.ImagesCacheDictionary);
                                                           
                                                        });
                                                       
@@ -255,13 +256,17 @@
 
 }
 
+// Orientaion change detection
 -(void) detectOrientation {
     [self.tableView reloadData];
 
 }
 
-
+// Refresh List Feed
 -(void)refreshList:(id)sender {
+    
+    [self.resultantData removeAllObjects];
+    [self.tableView reloadData];
     
      [self fetchJsonFeed];
 }

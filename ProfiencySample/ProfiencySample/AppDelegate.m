@@ -2,7 +2,7 @@
 //  AppDelegate.m
 //  ProfiencySample
 //
-//  Created by Balasubramaniyan M on 13/11/15.
+//  Created by Ansari on 13/11/15.
 //  Copyright (c) 2015 Ansari. All rights reserved.
 //
 
@@ -18,10 +18,12 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
     
+    //Initialise TableViewController
     ListTableViewController *myTableViewController = [[ListTableViewController alloc] initWithStyle:UITableViewStylePlain];
     UINavigationController *tableViewNavigationController = [[UINavigationController alloc] initWithRootViewController:myTableViewController];
+    
+    //set rootviewcontroller
     self.window.rootViewController = tableViewNavigationController;
-    self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
     
     return YES;
